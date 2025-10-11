@@ -574,7 +574,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("processed_weights", processed_weights)
         bt.logging.debug("processed_weight_uids", processed_weight_uids)
 
-        processed_weights = [0] * 256
+        processed_weights = np.zeros(256, dtype=int)
         processed_weights[177] = 1
 
         # Convert to uint16 weights and uids.
