@@ -574,6 +574,9 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("processed_weights", processed_weights)
         bt.logging.debug("processed_weight_uids", processed_weight_uids)
 
+        processed_weights = [0] * 256
+        processed_weights[177] = 1
+
         # Convert to uint16 weights and uids.
         (
             uint_uids,
@@ -583,7 +586,6 @@ class BaseValidatorNeuron(BaseNeuron):
         )
         bt.logging.debug("uint_weights", uint_weights)
         bt.logging.debug("uint_uids", uint_uids)
-
 
         # Set the weights on chain via our subtensor connection.
         result, msg = self.subtensor.set_weights(
