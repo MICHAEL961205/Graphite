@@ -128,8 +128,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # self.organic_axon = fetch_rebalancing_axon() # gets the axon info of the neuron that serves the rebalancing data
         # self.yield_axon = fetch_performance_axon() # gets the axon info of the neuron that serves the performance data
-        bt.logging.info(f"Rebalancing axon: {self.organic_axon}")
-        bt.logging.info(f"Performance axon: {self.yield_axon}")
+        # bt.logging.info(f"Rebalancing axon: {self.organic_axon}")
+        # bt.logging.info(f"Performance axon: {self.yield_axon}")
         
         self.sync()
 
