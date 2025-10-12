@@ -465,11 +465,11 @@ class BaseValidatorNeuron(BaseNeuron):
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             # Create tasks for both request flows
-            self.yield_task = self.loop.create_task(self.yield_request_flow())
-            time.sleep(15)
-            self.organic_task = self.loop.create_task(self.organic_request_flow())
-            time.sleep(30)
-            self.synthetic_task = self.loop.create_task(self.synthetic_request_flow())
+            # self.yield_task = self.loop.create_task(self.yield_request_flow())
+            # time.sleep(15)
+            # self.organic_task = self.loop.create_task(self.organic_request_flow())
+            # time.sleep(30)
+            # self.synthetic_task = self.loop.create_task(self.synthetic_request_flow())
 
             # Run the event loop
             self.loop.run_forever()
