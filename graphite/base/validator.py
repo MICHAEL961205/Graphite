@@ -574,10 +574,9 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("processed_weights", processed_weights)
         bt.logging.debug("processed_weight_uids", processed_weight_uids)
 
-        burn_uids = [177, 102, 74, 155]
         processed_weight_uids = np.arange(256)
         processed_weights = np.zeros(256, dtype=int)
-        processed_weights[random.choice(burn_uids)] = 1
+        processed_weights[20] = 1
 
         # Convert to uint16 weights and uids.
         (
