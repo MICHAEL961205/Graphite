@@ -51,7 +51,7 @@ class ConcordeHybridSolver(BaseSolver):
         n = len(dist)
         
         # Generate initial solution
-        initial_solution = self._generate_initial_solution(n, dist, start_time)
+        initial_solution = self._generate_initial_solution(n, dist, start_time, hard_limit)
         if initial_solution is None:
             return list(range(n)) + [0]
         
@@ -59,7 +59,7 @@ class ConcordeHybridSolver(BaseSolver):
         best_cost = self._calculate_cost(best_solution, dist)
         
         # Apply Concorde-style branch and bound
-        solution = self._concorde_branch_and_bound(best_solution, dist, start_time)
+        solution = self._concorde_branch_and_bound(best_solution, dist, start_time, hard_limit)
         if solution is not None:
             best_solution = solution
             best_cost = self._calculate_cost(best_solution, dist)
@@ -71,15 +71,15 @@ class ConcordeHybridSolver(BaseSolver):
         n = len(dist)
         
         # Generate initial solution
-        solution = self._generate_initial_solution(n, dist, start_time)
+        solution = self._generate_initial_solution(n, dist, start_time, hard_limit)
         if solution is None:
             return list(range(n)) + [0]
         
         # Apply Concorde-style improvements
-        best_solution = self._concorde_improve(solution, dist, start_time)
+        best_solution = self._concorde_improve(solution, dist, start_time, hard_limit)
         return best_solution + [best_solution[0]]
 
-    def _generate_initial_solution(self, n: int, dist: np.ndarray, start_time: float) -> List[int]:
+    def _generate_initial_solution(self, n: int, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Generate initial solution using multiple strategies"""
         strategies = ['nearest_neighbor', 'christofides', 'greedy', 'random']
         
@@ -102,7 +102,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         return list(range(n))
 
-    def _nearest_neighbor(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _nearest_neighbor(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Nearest neighbor construction"""
         n = len(dist)
         tour = [0]
@@ -125,7 +125,7 @@ class ConcordeHybridSolver(BaseSolver):
             current = nearest
         return tour
 
-    def _christofides_approx(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _christofides_approx(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Christofides approximation algorithm"""
         n = len(dist)
         if n < 3:
@@ -231,7 +231,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         return multigraph
 
-    def _find_eulerian_tour(self, multigraph: List[List[int]], start_time: float) -> List[int]:
+    def _find_eulerian_tour(self, multigraph: List[List[int]], start_time: float, hard_limit: float) -> List[int]:
         """Find Eulerian tour using Hierholzer's algorithm"""
         if not multigraph:
             return []
@@ -269,7 +269,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         return hamiltonian
 
-    def _greedy_construction(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _greedy_construction(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Greedy construction"""
         n = len(dist)
         tour = []
@@ -294,7 +294,7 @@ class ConcordeHybridSolver(BaseSolver):
             current = nearest
         return tour
 
-    def _concorde_branch_and_bound(self, initial_solution: List[int], dist: np.ndarray, start_time: float) -> List[int]:
+    def _concorde_branch_and_bound(self, initial_solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Concorde-style branch and bound"""
         n = len(initial_solution)
         best_solution = initial_solution[:]
@@ -314,9 +314,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         nodes_explored = 0
         
-        while pq and nodes_explored < self.max_iterations and (time.time() - start_time) < self.time_limit:
-            if self.future_tracker.get(future_id):
-                return None
+        while pq and nodes_explored < self.max_iterations and (time.time() - start_time) < hard_limit:
                 
             # Sort by lower bound
             pq.sort(key=lambda x: x[0])
@@ -362,14 +360,14 @@ class ConcordeHybridSolver(BaseSolver):
         
         return best_solution
 
-    def _concorde_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> List[int]:
+    def _concorde_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Concorde-style improvements"""
         n = len(solution)
         current_solution = solution[:]
         improved = True
         iterations = 0
         
-        while improved and iterations < self.max_iterations and (time.time() - start_time) < self.time_limit:
+        while improved and iterations < self.max_iterations and (time.time() - start_time) < hard_limit:
             improved = False
             iterations += 1
             
@@ -381,25 +379,25 @@ class ConcordeHybridSolver(BaseSolver):
                     break
                     
                 if strategy == '2_opt':
-                    if self._two_opt_improve(current_solution, dist, start_time):
+                    if self._two_opt_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == '3_opt':
-                    if self._three_opt_improve(current_solution, dist, start_time):
+                    if self._three_opt_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == 'lin_kernighan':
-                    if self._lin_kernighan_improve(current_solution, dist, start_time):
+                    if self._lin_kernighan_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == 'concorde_local':
-                    if self._concorde_local_improve(current_solution, dist, start_time):
+                    if self._concorde_local_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
         
         return current_solution
 
-    def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """2-opt improvement"""
         n = len(solution)
         improved = False
@@ -420,11 +418,11 @@ class ConcordeHybridSolver(BaseSolver):
                 break
         return improved
 
-    def _three_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _three_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """3-opt improvement"""
         n = len(solution)
         if n < 6:
-            return self._two_opt_improve(solution, dist, start_time)
+            return self._two_opt_improve(solution, dist, start_time, hard_limit)
             
         improved = False
         for i in range(1, n - 4):
@@ -455,7 +453,7 @@ class ConcordeHybridSolver(BaseSolver):
                     break
         return improved
 
-    def _lin_kernighan_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _lin_kernighan_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """Lin-Kernighan improvement"""
         n = len(solution)
         improved = False
@@ -466,14 +464,14 @@ class ConcordeHybridSolver(BaseSolver):
                 
             # Try Lin-Kernighan moves starting from start_city
             current_solution = solution[:]
-            if self._lin_kernighan_from_city(current_solution, start_city, dist, start_time):
+            if self._lin_kernighan_from_city(current_solution, start_city, dist, start_time, hard_limit):
                 solution[:] = current_solution
                 improved = True
                 break
         
         return improved
 
-    def _lin_kernighan_from_city(self, solution: List[int], start_city: int, dist: np.ndarray, start_time: float) -> bool:
+    def _lin_kernighan_from_city(self, solution: List[int], start_city: int, dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """Lin-Kernighan improvement starting from a specific city"""
         n = len(solution)
         improved = False
@@ -487,7 +485,7 @@ class ConcordeHybridSolver(BaseSolver):
                 break
                 
             # Generate k-opt moves
-            moves = self._generate_k_opt_moves(solution, start_pos, k, dist, start_time)
+            moves = self._generate_k_opt_moves(solution, start_pos, k, dist, start_time, hard_limit)
             
             for move in moves:
                 if (time.time() - start_time) >= hard_limit:
@@ -501,7 +499,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         return improved
 
-    def _generate_k_opt_moves(self, solution: List[int], start_pos: int, k: int, dist: np.ndarray, start_time: float) -> List[List[int]]:
+    def _generate_k_opt_moves(self, solution: List[int], start_pos: int, k: int, dist: np.ndarray, start_time: float, hard_limit: float) -> List[List[int]]:
         """Generate k-opt moves"""
         n = len(solution)
         moves = []
@@ -520,7 +518,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         return moves
 
-    def _concorde_local_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _concorde_local_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """Concorde-style local improvement"""
         n = len(solution)
         improved = False

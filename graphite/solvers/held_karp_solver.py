@@ -110,7 +110,7 @@ class HeldKarpSolver(BaseSolver):
             return list(range(n)) + [0]
         
         # Apply 2-opt improvements
-        solution = self._two_opt_improve(solution, dist, start_time)
+        solution = self._two_opt_improve(solution, dist, start_time, hard_limit)
         
         # Use Held-Karp on smaller subproblems
         best_solution = solution
@@ -208,7 +208,7 @@ class HeldKarpSolver(BaseSolver):
         tour_indices = self._reconstruct_tour(memo, all_cities, last_city)
         return [subset[i] for i in tour_indices]
 
-    def _extend_solution(self, partial_solution: List[int], dist: np.ndarray, start_time: float) -> List[int]:
+    def _extend_solution(self, partial_solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Extend partial solution to full solution"""
         n = len(dist)
         remaining = set(range(n)) - set(partial_solution)
@@ -292,7 +292,7 @@ class HeldKarpSolver(BaseSolver):
             current = nearest
         return tour
 
-    def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> List[int]:
+    def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """2-opt local improvement"""
         n = len(solution)
         improved_solution = solution[:]

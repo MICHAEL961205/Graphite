@@ -57,21 +57,21 @@ class LKHSolver(BaseSolver):
                 break
                 
             if strategy == 'nearest_neighbor':
-                solution = self._nearest_neighbor(dist, start_time)
+                solution = self._nearest_neighbor(dist, start_time, hard_limit)
             elif strategy == 'random':
                 solution = list(range(n))
                 random.shuffle(solution)
             elif strategy == 'greedy':
-                solution = self._greedy_construction(dist, start_time)
+                solution = self._greedy_construction(dist, start_time, hard_limit)
             elif strategy == 'christofides_approx':
-                solution = self._christofides_approx(dist, start_time)
+                solution = self._christofides_approx(dist, start_time, hard_limit)
             
             if solution and len(solution) == n:
                 return solution
         
         return list(range(n))
 
-    def _nearest_neighbor(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _nearest_neighbor(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Nearest neighbor construction"""
         n = len(dist)
         tour = [0]
@@ -94,7 +94,7 @@ class LKHSolver(BaseSolver):
             current = nearest
         return tour
 
-    def _greedy_construction(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _greedy_construction(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Greedy construction"""
         n = len(dist)
         tour = []
@@ -105,7 +105,7 @@ class LKHSolver(BaseSolver):
         tour.append(current)
         remaining.remove(current)
         
-        while remaining and (time.time() - start_time) < self.time_limit:
+        while remaining and (time.time() - start_time) < hard_limit:
             nearest = None
             best_dist = float('inf')
             for city in remaining:
@@ -119,14 +119,14 @@ class LKHSolver(BaseSolver):
             current = nearest
         return tour
 
-    def _christofides_approx(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _christofides_approx(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Christofides approximation algorithm"""
         n = len(dist)
         if n < 3:
             return list(range(n))
         
         # Find minimum spanning tree
-        mst = self._find_mst(dist, start_time)
+        mst = self._find_mst(dist, start_time, hard_limit)
         if mst is None:
             return list(range(n))
         
@@ -134,27 +134,27 @@ class LKHSolver(BaseSolver):
         odd_vertices = self._find_odd_vertices(mst, n)
         
         # Find minimum weight perfect matching
-        matching = self._find_min_weight_matching(odd_vertices, dist, start_time)
+        matching = self._find_min_weight_matching(odd_vertices, dist, start_time, hard_limit)
         
         # Combine MST and matching
         multigraph = self._combine_mst_and_matching(mst, matching, n)
         
         # Find Eulerian tour
-        eulerian_tour = self._find_eulerian_tour(multigraph, start_time)
+        eulerian_tour = self._find_eulerian_tour(multigraph, start_time, hard_limit)
         
         # Convert to Hamiltonian tour
         hamiltonian_tour = self._eulerian_to_hamiltonian(eulerian_tour)
         
         return hamiltonian_tour
 
-    def _find_mst(self, dist: np.ndarray, start_time: float) -> List[Tuple[int, int]]:
+    def _find_mst(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[Tuple[int, int]]:
         """Find minimum spanning tree using Prim's algorithm"""
         n = len(dist)
         mst = []
         visited = {0}
         remaining = set(range(1, n))
         
-        while remaining and (time.time() - start_time) < self.time_limit:
+        while remaining and (time.time() - start_time) < hard_limit:
             min_edge = None
             min_cost = float('inf')
             
@@ -182,7 +182,7 @@ class LKHSolver(BaseSolver):
         
         return [i for i in range(n) if degree[i] % 2 == 1]
 
-    def _find_min_weight_matching(self, odd_vertices: List[int], dist: np.ndarray, start_time: float) -> List[Tuple[int, int]]:
+    def _find_min_weight_matching(self, odd_vertices: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[Tuple[int, int]]:
         """Find minimum weight perfect matching (simplified)"""
         if len(odd_vertices) % 2 != 0:
             return []
@@ -191,7 +191,7 @@ class LKHSolver(BaseSolver):
         remaining = odd_vertices[:]
         matching = []
         
-        while len(remaining) >= 2 and (time.time() - start_time) < self.time_limit:
+        while len(remaining) >= 2 and (time.time() - start_time) < hard_limit:
             min_cost = float('inf')
             min_pair = None
             
@@ -225,7 +225,7 @@ class LKHSolver(BaseSolver):
         
         return multigraph
 
-    def _find_eulerian_tour(self, multigraph: List[List[int]], start_time: float) -> List[int]:
+    def _find_eulerian_tour(self, multigraph: List[List[int]], start_time: float, hard_limit: float) -> List[int]:
         """Find Eulerian tour using Hierholzer's algorithm"""
         if not multigraph:
             return []
@@ -240,7 +240,7 @@ class LKHSolver(BaseSolver):
         tour = []
         stack = [start]
         
-        while stack and (time.time() - start_time) < self.time_limit:
+        while stack and (time.time() - start_time) < hard_limit:
             current = stack[-1]
             if multigraph[current]:
                 next_vertex = multigraph[current].pop()
@@ -279,14 +279,16 @@ class LKHSolver(BaseSolver):
             
             for strategy in strategies:
                 if (time.time() - start_time) >= hard_limit:
+                    print(f"time limit reached for strategy: {strategy}")
                     break
                     
                 if strategy == '2_opt':
-                    if self._two_opt_improve(current_solution, dist, start_time):
+                    if self._two_opt_improve(current_solution, dist, start_time, hard_limit):
+                        print(f"2_opt improved solution:")
                         improved = True
                         break
                 elif strategy == '3_opt':
-                    if self._three_opt_improve(current_solution, dist, start_time):
+                    if self._three_opt_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == '4_opt':
@@ -308,7 +310,7 @@ class LKHSolver(BaseSolver):
         
         return current_solution
 
-    def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """2-opt improvement"""
         n = len(solution)
         improved = False
@@ -329,11 +331,11 @@ class LKHSolver(BaseSolver):
                 break
         return improved
 
-    def _three_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _three_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """3-opt improvement"""
         n = len(solution)
         if n < 6:
-            return self._two_opt_improve(solution, dist, start_time)
+            return self._two_opt_improve(solution, dist, start_time, hard_limit)
             
         improved = False
         for i in range(1, n - 4):
@@ -364,11 +366,11 @@ class LKHSolver(BaseSolver):
                     break
         return improved
 
-    def _four_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _four_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """4-opt improvement"""
         n = len(solution)
         if n < 8:
-            return self._three_opt_improve(solution, dist, start_time)
+            return self._three_opt_improve(solution, dist, start_time, hard_limit)
             
         improved = False
         for i in range(1, n - 6):
@@ -404,7 +406,7 @@ class LKHSolver(BaseSolver):
                     break
         return improved
 
-    def _five_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _five_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """5-opt improvement"""
         n = len(solution)
         if n < 10:
@@ -432,7 +434,7 @@ class LKHSolver(BaseSolver):
                 break
         return improved
 
-    def _or_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _or_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """Or-opt improvement"""
         n = len(solution)
         improved = False
@@ -460,7 +462,7 @@ class LKHSolver(BaseSolver):
                 break
         return improved
 
-    def _lin_kernighan_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> bool:
+    def _lin_kernighan_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """Lin-Kernighan improvement"""
         n = len(solution)
         improved = False
@@ -471,14 +473,14 @@ class LKHSolver(BaseSolver):
                 
             # Try Lin-Kernighan moves starting from start_city
             current_solution = solution[:]
-            if self._lin_kernighan_from_city(current_solution, start_city, dist, start_time):
+            if self._lin_kernighan_from_city(current_solution, start_city, dist, start_time, hard_limit):
                 solution[:] = current_solution
                 improved = True
                 break
         
         return improved
 
-    def _lin_kernighan_from_city(self, solution: List[int], start_city: int, dist: np.ndarray, start_time: float) -> bool:
+    def _lin_kernighan_from_city(self, solution: List[int], start_city: int, dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """Lin-Kernighan improvement starting from a specific city"""
         n = len(solution)
         improved = False
@@ -492,7 +494,7 @@ class LKHSolver(BaseSolver):
                 break
                 
             # Generate k-opt moves
-            moves = self._generate_k_opt_moves(solution, start_pos, k, dist, start_time)
+            moves = self._generate_k_opt_moves(solution, start_pos, k, dist, start_time, hard_limit)
             
             for move in moves:
                 if (time.time() - start_time) >= hard_limit:
@@ -506,7 +508,7 @@ class LKHSolver(BaseSolver):
         
         return improved
 
-    def _generate_k_opt_moves(self, solution: List[int], start_pos: int, k: int, dist: np.ndarray, start_time: float) -> List[List[int]]:
+    def _generate_k_opt_moves(self, solution: List[int], start_pos: int, k: int, dist: np.ndarray, start_time: float, hard_limit: float) -> List[List[int]]:
         """Generate k-opt moves"""
         n = len(solution)
         moves = []
