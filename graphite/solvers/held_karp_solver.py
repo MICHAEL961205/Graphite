@@ -106,7 +106,7 @@ class HeldKarpSolver(BaseSolver):
         
         # Start with nearest neighbor
         solution = self._nearest_neighbor(dist, start_time, hard_limit)
-        if solution is None:
+        if solution is None or len(solution) < n:
             return list(range(n)) + [0]
         
         # Apply 2-opt improvements
@@ -116,10 +116,15 @@ class HeldKarpSolver(BaseSolver):
         best_solution = solution
         best_cost = self._calculate_cost(best_solution, dist)
         
-        # Try different starting points
-        while (time.time() - start_time) < hard_limit:
+        # Try different starting points with limited iterations
+        max_iterations = 10
+        iteration = 0
+        
+        while iteration < max_iterations and (time.time() - start_time) < hard_limit:
+            iteration += 1
+            
             # Create subproblem with subset of cities
-            subset_size = min(12, n)
+            subset_size = min(8, n)  # Smaller subset for faster execution
             cities = list(range(n))
             random.shuffle(cities)
             subset = cities[:subset_size]
@@ -132,7 +137,7 @@ class HeldKarpSolver(BaseSolver):
             if subproblem_solution is not None:
                 # Extend to full solution
                 full_solution = self._extend_solution(subproblem_solution, dist, start_time, hard_limit)
-                if full_solution is not None:
+                if full_solution is not None and len(full_solution) == n:
                     cost = self._calculate_cost(full_solution, dist)
                     if cost < best_cost - 1e-12:
                         best_solution = full_solution
@@ -146,25 +151,31 @@ class HeldKarpSolver(BaseSolver):
         if n <= 2:
             return subset
         
+        # For very small subsets, use nearest neighbor
+        if n <= 4:
+            return self._nearest_neighbor_subset(dist, subset, start_time, hard_limit)
+        
         # Create distance matrix for subset
         sub_dist = np.zeros((n, n))
         for i in range(n):
             for j in range(n):
                 sub_dist[i][j] = dist[subset[i]][subset[j]]
         
-        # Solve using exact Held-Karp
+        # Solve using exact Held-Karp with time limit
         memo = {}
         
         # Base case
         for i in range(n):
             memo[(frozenset([i]), i)] = (0, None)
         
-        # Fill memoization table
-        for subset_size in range(2, n + 1):
+        # Fill memoization table with time checks
+        for subset_size in range(2, min(n + 1, 6)):  # Limit subset size
             if (time.time() - start_time) >= hard_limit:
                 break
                 
             for sub_subset in self._generate_subsets(range(n), subset_size):
+                if (time.time() - start_time) >= hard_limit:
+                    break
                 if 0 not in sub_subset:
                     continue
                     
@@ -199,7 +210,7 @@ class HeldKarpSolver(BaseSolver):
                 last_city = k
         
         if last_city is None:
-            return subset
+            return self._nearest_neighbor_subset(dist, subset, start_time, hard_limit)
         
         # Reconstruct tour
         tour_indices = self._reconstruct_tour(memo, all_cities, last_city)
@@ -229,6 +240,11 @@ class HeldKarpSolver(BaseSolver):
             solution.append(nearest)
             remaining.remove(nearest)
             current = nearest
+        
+        # If we couldn't extend to all cities, fill remaining with nearest neighbor
+        if remaining:
+            for city in remaining:
+                solution.append(city)
         
         return solution
 
@@ -282,6 +298,32 @@ class HeldKarpSolver(BaseSolver):
                 if j not in visited and dist[current][j] < best_dist:
                     best_dist = dist[current][j]
                     nearest = j
+            if nearest is None:
+                break
+            tour.append(nearest)
+            visited.add(nearest)
+            current = nearest
+        return tour
+
+    def _nearest_neighbor_subset(self, dist: np.ndarray, subset: List[int], start_time: float, hard_limit: float) -> List[int]:
+        """Nearest neighbor construction for a subset of cities"""
+        n = len(subset)
+        if n <= 1:
+            return subset
+        
+        tour = [subset[0]]
+        visited = {subset[0]}
+        current = subset[0]
+        
+        for _ in range(n - 1):
+            if (time.time() - start_time) >= hard_limit:
+                break
+            nearest = None
+            best_dist = float('inf')
+            for city in subset:
+                if city not in visited and dist[current][city] < best_dist:
+                    best_dist = dist[current][city]
+                    nearest = city
             if nearest is None:
                 break
             tour.append(nearest)
