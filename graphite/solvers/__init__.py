@@ -26,3 +26,9 @@ from .ant_colony_solver import AntColonySolver
 from .particle_swarm_solver import ParticleSwarmSolver
 from .variable_neighborhood_solver import VariableNeighborhoodSolver
 from .memetic_solver import MemeticSolver
+from .hybrid_genetic_solver import HybridGeneticSolver
+from .iterated_local_search_solver import IteratedLocalSearchSolver
+from .grasp_solver import GRASPSolver
+from .tabu_search_solver import TabuSearchSolver
+from .evolution_strategies_solver import EvolutionStrategiesSolver
+from .multi_objective_genetic_solver import MultiObjectiveGeneticSolver
