@@ -34,18 +34,19 @@ class ConcordeHybridSolver(BaseSolver):
         distance_matrix = formatted_problem
         n = len(distance_matrix)
         start_time = time.time()
+        hard_limit = self.time_limit  # Hard limit at exactly time_limit
 
         if n <= 2:
             return list(range(n)) + [0]
 
         # For small problems, use exact Concorde-style
         if n <= 15:
-            return self._exact_concorde_style(distance_matrix, start_time)
+            return self._exact_concorde_style(distance_matrix, start_time, hard_limit)
         else:
             # For larger problems, use heuristic Concorde-style
-            return self._heuristic_concorde_style(distance_matrix, start_time)
+            return self._heuristic_concorde_style(distance_matrix, start_time, hard_limit)
 
-    def _exact_concorde_style(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _exact_concorde_style(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Exact Concorde-style algorithm for small problems"""
         n = len(dist)
         
@@ -65,7 +66,7 @@ class ConcordeHybridSolver(BaseSolver):
         
         return best_solution + [best_solution[0]]
 
-    def _heuristic_concorde_style(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _heuristic_concorde_style(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Heuristic Concorde-style algorithm for larger problems"""
         n = len(dist)
         
@@ -83,7 +84,7 @@ class ConcordeHybridSolver(BaseSolver):
         strategies = ['nearest_neighbor', 'christofides', 'greedy', 'random']
         
         for strategy in strategies:
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             if strategy == 'nearest_neighbor':
@@ -109,7 +110,7 @@ class ConcordeHybridSolver(BaseSolver):
         current = 0
         
         for _ in range(n - 1):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             nearest = None
             best_dist = float('inf')
@@ -335,7 +336,7 @@ class ConcordeHybridSolver(BaseSolver):
             
             # Branch: add each remaining city
             for city in node['remaining']:
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                     
                 new_partial_tour = node['partial_tour'] + [city]
@@ -376,7 +377,7 @@ class ConcordeHybridSolver(BaseSolver):
             strategies = ['2_opt', '3_opt', 'lin_kernighan', 'concorde_local']
             
             for strategy in strategies:
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                     
                 if strategy == '2_opt':
@@ -404,10 +405,10 @@ class ConcordeHybridSolver(BaseSolver):
         improved = False
         
         for i in range(1, n - 2):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, n):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 a, b = solution[i-1], solution[i]
                 c, d = solution[j-1], solution[j]
@@ -427,13 +428,13 @@ class ConcordeHybridSolver(BaseSolver):
             
         improved = False
         for i in range(1, n - 4):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, n - 2):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 for k in range(j + 1, n):
-                    if (time.time() - start_time) >= self.time_limit:
+                    if (time.time() - start_time) >= hard_limit:
                         break
                     # Try different 3-opt configurations
                     configs = [
@@ -460,7 +461,7 @@ class ConcordeHybridSolver(BaseSolver):
         improved = False
         
         for start_city in range(min(10, n)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             # Try Lin-Kernighan moves starting from start_city
@@ -482,14 +483,14 @@ class ConcordeHybridSolver(BaseSolver):
         
         # Try different Lin-Kernighan moves
         for k in range(2, min(6, n // 2)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             # Generate k-opt moves
             moves = self._generate_k_opt_moves(solution, start_pos, k, dist, start_time)
             
             for move in moves:
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 if self._calculate_cost(move, dist) < self._calculate_cost(solution, dist) - 1e-12:
                     solution[:] = move
@@ -507,10 +508,10 @@ class ConcordeHybridSolver(BaseSolver):
         
         # Generate different k-opt configurations
         for i in range(start_pos, min(start_pos + 5, n - k)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, min(i + k + 1, n)):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 # Try different reversal patterns
                 new_solution = solution[:]
@@ -526,13 +527,13 @@ class ConcordeHybridSolver(BaseSolver):
         
         # Try different local improvement patterns
         for i in range(n - 3):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 2, n - 1):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 for k in range(j + 2, n):
-                    if (time.time() - start_time) >= self.time_limit:
+                    if (time.time() - start_time) >= hard_limit:
                         break
                     # Try different configurations
                     configs = [

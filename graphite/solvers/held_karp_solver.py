@@ -31,18 +31,19 @@ class HeldKarpSolver(BaseSolver):
         distance_matrix = formatted_problem
         n = len(distance_matrix)
         start_time = time.time()
+        hard_limit = self.time_limit  # Hard limit at exactly time_limit
 
         if n <= 2:
             return list(range(n)) + [0]
 
         # For small problems, use exact Held-Karp
         if n <= self.max_size:
-            return self._exact_held_karp(distance_matrix, start_time)
+            return self._exact_held_karp(distance_matrix, start_time, hard_limit)
         else:
             # For larger problems, use heuristic Held-Karp
-            return self._heuristic_held_karp(distance_matrix, start_time)
+            return self._heuristic_held_karp(distance_matrix, start_time, hard_limit)
 
-    def _exact_held_karp(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _exact_held_karp(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Exact Held-Karp for small problems"""
         n = len(dist)
         
@@ -55,7 +56,7 @@ class HeldKarpSolver(BaseSolver):
         
         # Fill memoization table
         for subset_size in range(2, n + 1):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             for subset in self._generate_subsets(range(n), subset_size):
@@ -99,7 +100,7 @@ class HeldKarpSolver(BaseSolver):
         tour = self._reconstruct_tour(memo, all_cities, last_city)
         return tour + [tour[0]]
 
-    def _heuristic_held_karp(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _heuristic_held_karp(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Heuristic Held-Karp for larger problems"""
         n = len(dist)
         
@@ -117,7 +118,7 @@ class HeldKarpSolver(BaseSolver):
         
         # Try different starting points
         for start_city in range(min(5, n)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             # Create subproblem with subset of cities
@@ -142,7 +143,7 @@ class HeldKarpSolver(BaseSolver):
         
         return best_solution + [best_solution[0]]
 
-    def _solve_subproblem(self, dist: np.ndarray, subset: List[int], start_time: float) -> List[int]:
+    def _solve_subproblem(self, dist: np.ndarray, subset: List[int], start_time: float, hard_limit: float) -> List[int]:
         """Solve Held-Karp for a subset of cities"""
         n = len(subset)
         if n <= 2:
@@ -163,7 +164,7 @@ class HeldKarpSolver(BaseSolver):
         
         # Fill memoization table
         for subset_size in range(2, n + 1):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             for sub_subset in self._generate_subsets(range(n), subset_size):
@@ -276,7 +277,7 @@ class HeldKarpSolver(BaseSolver):
         current = 0
         
         for _ in range(n - 1):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             nearest = None
             best_dist = float('inf')
@@ -304,10 +305,10 @@ class HeldKarpSolver(BaseSolver):
             iterations += 1
             
             for i in range(1, n - 2):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 for j in range(i + 1, n):
-                    if (time.time() - start_time) >= self.time_limit:
+                    if (time.time() - start_time) >= hard_limit:
                         break
                     a, b = improved_solution[i-1], improved_solution[i]
                     c, d = improved_solution[j-1], improved_solution[j]

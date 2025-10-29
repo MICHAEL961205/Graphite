@@ -34,25 +34,26 @@ class LKHSolver(BaseSolver):
         distance_matrix = formatted_problem
         n = len(distance_matrix)
         start_time = time.time()
+        hard_limit = self.time_limit  # Hard limit at exactly time_limit
 
         if n <= 2:
             return list(range(n)) + [0]
 
         # Generate initial solution
-        solution = self._generate_initial_solution(n, distance_matrix, start_time)
+        solution = self._generate_initial_solution(n, distance_matrix, start_time, hard_limit)
         if solution is None:
             return list(range(n)) + [0]
 
         # Apply LKH improvements
-        best_solution = self._lkh_improve(solution, distance_matrix, start_time)
+        best_solution = self._lkh_improve(solution, distance_matrix, start_time, hard_limit)
         return best_solution + [best_solution[0]]
 
-    def _generate_initial_solution(self, n: int, dist: np.ndarray, start_time: float) -> List[int]:
+    def _generate_initial_solution(self, n: int, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Generate initial solution using multiple strategies"""
         strategies = ['nearest_neighbor', 'random', 'greedy', 'christofides_approx']
         
         for strategy in strategies:
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             if strategy == 'nearest_neighbor':
@@ -78,7 +79,7 @@ class LKHSolver(BaseSolver):
         current = 0
         
         for _ in range(n - 1):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             nearest = None
             best_dist = float('inf')
@@ -262,7 +263,7 @@ class LKHSolver(BaseSolver):
         
         return hamiltonian
 
-    def _lkh_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> List[int]:
+    def _lkh_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Apply LKH improvements"""
         n = len(solution)
         current_solution = solution[:]
@@ -277,7 +278,7 @@ class LKHSolver(BaseSolver):
             strategies = ['2_opt', '3_opt', '4_opt', '5_opt', 'or_opt', 'lin_kernighan']
             
             for strategy in strategies:
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                     
                 if strategy == '2_opt':
@@ -313,10 +314,10 @@ class LKHSolver(BaseSolver):
         improved = False
         
         for i in range(1, n - 2):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, n):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 a, b = solution[i-1], solution[i]
                 c, d = solution[j-1], solution[j]
@@ -336,13 +337,13 @@ class LKHSolver(BaseSolver):
             
         improved = False
         for i in range(1, n - 4):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, n - 2):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 for k in range(j + 1, n):
-                    if (time.time() - start_time) >= self.time_limit:
+                    if (time.time() - start_time) >= hard_limit:
                         break
                     # Try different 3-opt configurations
                     configs = [
@@ -371,16 +372,16 @@ class LKHSolver(BaseSolver):
             
         improved = False
         for i in range(1, n - 6):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, n - 4):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 for k in range(j + 1, n - 2):
-                    if (time.time() - start_time) >= self.time_limit:
+                    if (time.time() - start_time) >= hard_limit:
                         break
                     for l in range(k + 1, n):
-                        if (time.time() - start_time) >= self.time_limit:
+                        if (time.time() - start_time) >= hard_limit:
                             break
                         # Try different 4-opt configurations
                         configs = [
@@ -412,7 +413,7 @@ class LKHSolver(BaseSolver):
         # Simplified 5-opt: try random 5-opt moves
         improved = False
         for _ in range(min(20, n)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             i, j, k, l, m = sorted(random.sample(range(n), 5))
             # Try different 5-opt configurations
@@ -437,16 +438,16 @@ class LKHSolver(BaseSolver):
         improved = False
         
         for segment_length in range(1, min(4, n // 2)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for start in range(n - segment_length + 1):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 segment = solution[start:start + segment_length]
                 remaining = solution[:start] + solution[start + segment_length:]
                 
                 for insert_pos in range(len(remaining) + 1):
-                    if (time.time() - start_time) >= self.time_limit:
+                    if (time.time() - start_time) >= hard_limit:
                         break
                     new_solution = remaining[:insert_pos] + segment + remaining[insert_pos:]
                     if self._calculate_cost(new_solution, dist) < self._calculate_cost(solution, dist) - 1e-12:
@@ -465,7 +466,7 @@ class LKHSolver(BaseSolver):
         improved = False
         
         for start_city in range(min(10, n)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             # Try Lin-Kernighan moves starting from start_city
@@ -487,14 +488,14 @@ class LKHSolver(BaseSolver):
         
         # Try different Lin-Kernighan moves
         for k in range(2, min(self.k_opt_max + 1, n // 2)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
                 
             # Generate k-opt moves
             moves = self._generate_k_opt_moves(solution, start_pos, k, dist, start_time)
             
             for move in moves:
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 if self._calculate_cost(move, dist) < self._calculate_cost(solution, dist) - 1e-12:
                     solution[:] = move
@@ -512,10 +513,10 @@ class LKHSolver(BaseSolver):
         
         # Generate different k-opt configurations
         for i in range(start_pos, min(start_pos + 5, n - k)):
-            if (time.time() - start_time) >= self.time_limit:
+            if (time.time() - start_time) >= hard_limit:
                 break
             for j in range(i + 1, min(i + k + 1, n)):
-                if (time.time() - start_time) >= self.time_limit:
+                if (time.time() - start_time) >= hard_limit:
                     break
                 # Try different reversal patterns
                 new_solution = solution[:]

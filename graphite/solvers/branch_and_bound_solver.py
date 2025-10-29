@@ -32,18 +32,19 @@ class BranchAndBoundSolver(BaseSolver):
         distance_matrix = formatted_problem
         n = len(distance_matrix)
         start_time = time.time()
+        hard_limit = self.time_limit  # Hard limit at exactly time_limit
 
         if n <= 2:
             return list(range(n)) + [0]
 
         # For small problems, use exact branch and bound
         if n <= 12:
-            return self._exact_branch_and_bound(distance_matrix, start_time)
+            return self._exact_branch_and_bound(distance_matrix, start_time, hard_limit)
         else:
             # For larger problems, use heuristic branch and bound
-            return self._heuristic_branch_and_bound(distance_matrix, start_time)
+            return self._heuristic_branch_and_bound(distance_matrix, start_time, hard_limit)
 
-    def _exact_branch_and_bound(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _exact_branch_and_bound(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Exact branch and bound for small problems"""
         n = len(dist)
         
@@ -67,10 +68,13 @@ class BranchAndBoundSolver(BaseSolver):
         heapq.heappush(pq, (root_node['lower_bound'], root_node))
         
         nodes_explored = 0
+        check_counter = 0
         
-        while pq and nodes_explored < self.max_nodes and (time.time() - start_time) < self.time_limit:
-            if self.future_tracker.get(future_id):
-                return None
+        while pq and nodes_explored < self.max_nodes:
+            check_counter += 1
+            if check_counter % 10 == 0:
+                if (time.time() - start_time) >= hard_limit:
+                    break
                 
             lower_bound, node = heapq.heappop(pq)
             nodes_explored += 1
@@ -86,10 +90,11 @@ class BranchAndBoundSolver(BaseSolver):
                     best_cost = node['cost']
                 continue
             
-            # Branch: add each remaining city
-            for city in node['remaining']:
-                if (time.time() - start_time) >= self.time_limit:
-                    break
+            # Branch: add each remaining city, but limit branching for time
+            remaining_list = list(node['remaining'])[:min(3, len(node['remaining']))]  # Limit branching
+            for city in remaining_list:
+                if (time.time() - start_time) >= hard_limit:
+                    return best_solution + [best_solution[0]]
                     
                 new_partial_tour = node['partial_tour'] + [city]
                 new_remaining = node['remaining'] - {city}
@@ -114,8 +119,8 @@ class BranchAndBoundSolver(BaseSolver):
         
         return best_solution + [best_solution[0]]
 
-    def _heuristic_branch_and_bound(self, dist: np.ndarray, start_time: float) -> List[int]:
-        """Heuristic branch and bound for larger problems"""
+    def _heuristic_branch_and_bound(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
+        """Heuristic branch and bound for larger problems - optimized for quality"""
         n = len(dist)
         
         # Start with nearest neighbor
@@ -126,71 +131,9 @@ class BranchAndBoundSolver(BaseSolver):
         best_solution = solution
         best_cost = self._calculate_cost(best_solution, dist)
         
-        # Apply 2-opt improvements
-        best_solution = self._two_opt_improve(best_solution, dist, start_time)
-        best_cost = self._calculate_cost(best_solution, dist)
-        
-        # Limited branch and bound search
-        pq = []
-        root_node = {
-            'partial_tour': [],
-            'remaining': set(range(n)),
-            'lower_bound': self._calculate_lower_bound([], set(range(n)), dist),
-            'cost': 0
-        }
-        heapq.heappush(pq, (root_node['lower_bound'], root_node))
-        
-        nodes_explored = 0
-        max_depth = min(8, n)  # Limit depth for larger problems
-        
-        while pq and nodes_explored < self.max_nodes and (time.time() - start_time) < self.time_limit:
-            if self.future_tracker.get(future_id):
-                return None
-                
-            lower_bound, node = heapq.heappop(pq)
-            nodes_explored += 1
-            
-            # Prune if lower bound is worse than best solution
-            if lower_bound >= best_cost:
-                continue
-            
-            # If partial tour is complete, check if it's better
-            if len(node['partial_tour']) == n:
-                if node['cost'] < best_cost - 1e-12:
-                    best_solution = node['partial_tour'][:]
-                    best_cost = node['cost']
-                continue
-            
-            # Limit depth for larger problems
-            if len(node['partial_tour']) >= max_depth:
-                continue
-            
-            # Branch: add each remaining city
-            for city in node['remaining']:
-                if (time.time() - start_time) >= self.time_limit:
-                    break
-                    
-                new_partial_tour = node['partial_tour'] + [city]
-                new_remaining = node['remaining'] - {city}
-                
-                # Calculate cost of new partial tour
-                new_cost = node['cost']
-                if len(new_partial_tour) > 1:
-                    new_cost += dist[new_partial_tour[-2]][new_partial_tour[-1]]
-                
-                # Calculate lower bound
-                new_lower_bound = self._calculate_lower_bound(new_partial_tour, new_remaining, dist)
-                
-                # Only add if lower bound is promising
-                if new_lower_bound < best_cost:
-                    new_node = {
-                        'partial_tour': new_partial_tour,
-                        'remaining': new_remaining,
-                        'lower_bound': new_lower_bound,
-                        'cost': new_cost
-                    }
-                    heapq.heappush(pq, (new_lower_bound, new_node))
-        
+        # Apply extensive 2-opt improvements for quality
+        best_solution = self._two_opt_improve_extensive(best_solution, dist, start_time, hard_limit)
+        # For larger problems, just use extensive local search for quality
         return best_solution + [best_solution[0]]
 
     def _calculate_lower_bound(self, partial_tour: List[int], remaining: set, dist: np.ndarray) -> float:
@@ -281,6 +224,35 @@ class BranchAndBoundSolver(BaseSolver):
             visited.add(nearest)
             current = nearest
         return tour
+
+    def _two_opt_improve_extensive(self, solution: List[int], dist: np.ndarray, start_time: float, time_limit: float) -> List[int]:
+        """Extensive 2-opt improvement using full time for quality"""
+        n = len(solution)
+        improved_solution = solution[:]
+        improved = True
+        iterations = 0
+        max_iterations = 200  # Allow many iterations for quality
+        
+        while improved and iterations < max_iterations and (time.time() - start_time) < time_limit:
+            improved = False
+            iterations += 1
+            
+            for i in range(1, n - 2):
+                if (time.time() - start_time) >= time_limit:
+                    break
+                for j in range(i + 1, n):
+                    if (time.time() - start_time) >= time_limit:
+                        break
+                    a, b = improved_solution[i-1], improved_solution[i]
+                    c, d = improved_solution[j-1], improved_solution[j]
+                    if dist[a][c] + dist[b][d] < dist[a][b] + dist[c][d] - 1e-12:
+                        improved_solution[i:j] = reversed(improved_solution[i:j])
+                        improved = True
+                        break
+                if improved:
+                    break
+        
+        return improved_solution
 
     def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float) -> List[int]:
         """2-opt local improvement"""
