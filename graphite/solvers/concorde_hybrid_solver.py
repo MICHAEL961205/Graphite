@@ -88,11 +88,11 @@ class ConcordeHybridSolver(BaseSolver):
                 break
                 
             if strategy == 'nearest_neighbor':
-                solution = self._nearest_neighbor(dist, start_time)
+                solution = self._nearest_neighbor(dist, start_time, hard_limit)
             elif strategy == 'christofides':
-                solution = self._christofides_approx(dist, start_time)
+                solution = self._christofides_approx(dist, start_time, hard_limit)
             elif strategy == 'greedy':
-                solution = self._greedy_construction(dist, start_time)
+                solution = self._greedy_construction(dist, start_time, hard_limit)
             elif strategy == 'random':
                 solution = list(range(n))
                 random.shuffle(solution)

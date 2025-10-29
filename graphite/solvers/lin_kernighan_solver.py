@@ -89,13 +89,13 @@ class LinKernighanSolver(BaseSolver):
             if (time.time() - start_time) >= self.time_limit:
                 break
                 
-            new_tour = self._try_k_opt(tour, dist, start_pos, k, pos)
+            new_tour = self._try_k_opt(tour, dist, start_pos, k, pos, start_time)
             if new_tour is not None:
                 return new_tour
                 
         return None
 
-    def _try_k_opt(self, tour: List[int], dist: np.ndarray, start_pos: int, k: int, pos: dict) -> List[int]:
+    def _try_k_opt(self, tour: List[int], dist: np.ndarray, start_pos: int, k: int, pos: dict, start_time: float) -> List[int]:
         n = len(tour)
         if n < 2 * k:
             return None

@@ -279,12 +279,10 @@ class LKHSolver(BaseSolver):
             
             for strategy in strategies:
                 if (time.time() - start_time) >= hard_limit:
-                    print(f"time limit reached for strategy: {strategy}")
                     break
                     
                 if strategy == '2_opt':
                     if self._two_opt_improve(current_solution, dist, start_time, hard_limit):
-                        print(f"2_opt improved solution:")
                         improved = True
                         break
                 elif strategy == '3_opt':
@@ -292,15 +290,15 @@ class LKHSolver(BaseSolver):
                         improved = True
                         break
                 elif strategy == '4_opt':
-                    if self._four_opt_improve(current_solution, dist, start_time):
+                    if self._four_opt_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == '5_opt':
-                    if self._five_opt_improve(current_solution, dist, start_time):
+                    if self._five_opt_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == 'or_opt':
-                    if self._or_opt_improve(current_solution, dist, start_time):
+                    if self._or_opt_improve(current_solution, dist, start_time, hard_limit):
                         improved = True
                         break
                 elif strategy == 'lin_kernighan':
@@ -410,7 +408,7 @@ class LKHSolver(BaseSolver):
         """5-opt improvement"""
         n = len(solution)
         if n < 10:
-            return self._four_opt_improve(solution, dist, start_time)
+            return self._four_opt_improve(solution, dist, start_time, hard_limit)
             
         # Simplified 5-opt: try random 5-opt moves
         improved = False

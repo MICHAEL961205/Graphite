@@ -118,16 +118,20 @@ class ChristofidesSolver(BaseSolver):
             adj[u].append(v)
             adj[v].append(u)
         
-        # DFS to get eulerian circuit
-        def dfs(v, path):
-            while adj[v]:
-                w = adj[v].pop()
-                adj[w].remove(v)
-                dfs(w, path)
-            path.append(v)
+        # Iterative DFS to get eulerian circuit (avoid recursion depth issues)
+        def iterative_dfs(start, path):
+            stack = [start]
+            while stack:
+                v = stack[-1]
+                if adj[v]:
+                    w = adj[v].pop()
+                    adj[w].remove(v)
+                    stack.append(w)
+                else:
+                    path.append(stack.pop())
         
         path = []
-        dfs(0, path)
+        iterative_dfs(0, path)
         # Remove duplicates to get Hamiltonian path
         seen = set()
         hamiltonian = []

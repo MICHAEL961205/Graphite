@@ -105,7 +105,7 @@ class HeldKarpSolver(BaseSolver):
         n = len(dist)
         
         # Start with nearest neighbor
-        solution = self._nearest_neighbor(dist, start_time)
+        solution = self._nearest_neighbor(dist, start_time, hard_limit)
         if solution is None:
             return list(range(n)) + [0]
         
@@ -117,10 +117,7 @@ class HeldKarpSolver(BaseSolver):
         best_cost = self._calculate_cost(best_solution, dist)
         
         # Try different starting points
-        for start_city in range(min(5, n)):
-            if (time.time() - start_time) >= hard_limit:
-                break
-                
+        while (time.time() - start_time) < hard_limit:
             # Create subproblem with subset of cities
             subset_size = min(12, n)
             cities = list(range(n))
@@ -131,10 +128,10 @@ class HeldKarpSolver(BaseSolver):
                 subset[0] = 0  # Ensure city 0 is included
             
             # Solve subproblem
-            subproblem_solution = self._solve_subproblem(dist, subset, start_time)
+            subproblem_solution = self._solve_subproblem(dist, subset, start_time, hard_limit)
             if subproblem_solution is not None:
                 # Extend to full solution
-                full_solution = self._extend_solution(subproblem_solution, dist, start_time)
+                full_solution = self._extend_solution(subproblem_solution, dist, start_time, hard_limit)
                 if full_solution is not None:
                     cost = self._calculate_cost(full_solution, dist)
                     if cost < best_cost - 1e-12:
@@ -220,7 +217,7 @@ class HeldKarpSolver(BaseSolver):
         solution = partial_solution[:]
         current = solution[-1]
         
-        while remaining and (time.time() - start_time) < self.time_limit:
+        while remaining and (time.time() - start_time) < hard_limit:
             nearest = None
             best_dist = float('inf')
             for city in remaining:
@@ -269,7 +266,7 @@ class HeldKarpSolver(BaseSolver):
         
         return tour[::-1]  # Reverse to get correct order
 
-    def _nearest_neighbor(self, dist: np.ndarray, start_time: float) -> List[int]:
+    def _nearest_neighbor(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
         """Nearest neighbor construction"""
         n = len(dist)
         tour = [0]
@@ -300,7 +297,7 @@ class HeldKarpSolver(BaseSolver):
         iterations = 0
         max_iterations = 20
         
-        while improved and iterations < max_iterations and (time.time() - start_time) < self.time_limit:
+        while improved and iterations < max_iterations and (time.time() - start_time) < hard_limit:
             improved = False
             iterations += 1
             
