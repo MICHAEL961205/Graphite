@@ -32,3 +32,9 @@ from .grasp_solver import GRASPSolver
 from .tabu_search_solver import TabuSearchSolver
 from .evolution_strategies_solver import EvolutionStrategiesSolver
 from .multi_objective_genetic_solver import MultiObjectiveGeneticSolver
+from .dfj_solver import DFJSolver
+from .mtz_solver import MTZSolver
+from .branch_and_bound_solver import BranchAndBoundSolver
+from .held_karp_solver import HeldKarpSolver
+from .lkh_solver import LKHSolver
+from .concorde_hybrid_solver import ConcordeHybridSolver
