@@ -60,7 +60,7 @@ def main():
     mock = Mock()
     load_default_dataset(mock)
 
-    metric_problems, metric_sizes = MetricTSPV2Generator.generate_n_samples_without_edges(1, mock.loaded_datasets)
+    metric_problems, metric_sizes = MetricTSPV2Generator.generate_n_samples_without_edges(N_PROBLEMS, mock.loaded_datasets)
 
     test_solvers = [HeldKarpSolver(time_limit=100), NearestNeighbourSolver()]
     run_times_dict, scores_dict = compare_problems(test_solvers, metric_problems, mock.loaded_datasets)
