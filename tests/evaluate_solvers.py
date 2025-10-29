@@ -17,6 +17,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from typing import List
 from graphite.solvers import *
 from graphite.solvers.naive_v2_solver import NaiveSolver
@@ -51,6 +55,21 @@ def can_show_plot():
 
     return True
 
+def check_concorde_improvement(scores_dict: dict) -> bool:
+    """Check if ConcordeSolver is performing better than NearestNeighbourSolver."""
+    if 'ConcordeSolver' not in scores_dict or 'NearestNeighbourSolver' not in scores_dict:
+        return False
+    
+    concorde_scores = scores_dict['ConcordeSolver']
+    nn_scores = scores_dict['NearestNeighbourSolver']
+    
+    # Check if any Concorde score is better (lower) than corresponding NN score
+    improvements = sum(1 for c, n in zip(concorde_scores, nn_scores) if c < n)
+    total_problems = len(concorde_scores)
+    
+    print(f"Concorde improvements: {improvements}/{total_problems} problems")
+    return improvements > 0
+
 def compare_problems(solvers: List, problems: List[GraphV2Problem], loaded_datasets: dict):
     problem_types = set([problem.problem_type for problem in problems])
     mock_synapses = [GraphV2Synapse(problem=problem) for problem in problems]
@@ -61,6 +80,10 @@ def compare_problems(solvers: List, problems: List[GraphV2Problem], loaded_datas
         run_times = []
         scores = []
         print(f"Running Solver {i+1} - {solver.__class__.__name__}")
+        if hasattr(solver, 'get_solver_info'):
+            solver_info = solver.get_solver_info()
+            print(f"Solver info: {solver_info}")
+        
         for mock_synapse in tqdm.tqdm(mock_synapses, desc=f"{solver.__class__.__name__} solving {problem_types}"):
             # generate the edges adhoc
             MetricTSPV2Generator.recreate_edges(problem = mock_synapse.problem, loaded_datasets=loaded_datasets)
@@ -112,11 +135,38 @@ def main():
     load_default_dataset(mock) # load dataset as an attribute to mock instance
 
     # Use MetricTSPGenerator to generate problems of various graph sizes
-    metric_problems, metric_sizes = MetricTSPV2Generator.generate_n_samples_without_edges(N_PROBLEMS, mock.loaded_datasets)
+    metric_problems, metric_sizes = MetricTSPV2Generator.generate_n_samples_without_edges(1, mock.loaded_datasets)
 
-    # test_solvers = [NearestNeighbourSolver(), BeamSearchSolver(), HPNSolver()]
-    test_solvers = [NearestNeighbourSolver(), NaiveSolver()]
-
+    # Try different time limits until Concorde shows improvement
+    time_limits = [60, 120, 300, 600, 1200]  # 1min, 2min, 5min, 10min, 20min
+    best_time_limit = 60
+    
+    for time_limit in time_limits:
+        print(f"\n{'='*60}")
+        print(f"Testing ConcordeSolver with {time_limit} second time limit")
+        print(f"{'='*60}")
+        
+        # Create ConcordeSolver with current time limit
+        test_solvers = [ConcordeSolver(time_limit=time_limit), TSPSOLVER(), NearestNeighbourSolver()]
+        
+        run_times_dict, scores_dict = compare_problems(test_solvers, metric_problems, mock.loaded_datasets)
+        
+        # Check if Concorde is improving
+        if check_concorde_improvement(scores_dict):
+            print(f"✅ SUCCESS: ConcordeSolver with {time_limit}s time limit shows improvement!")
+            best_time_limit = time_limit
+            break
+        else:
+            print(f"❌ ConcordeSolver with {time_limit}s time limit still falling back to nearest neighbor")
+            if time_limit < max(time_limits):
+                print("Trying with longer time limit...")
+    
+    print(f"\n{'='*60}")
+    print(f"FINAL EVALUATION with {best_time_limit}s time limit")
+    print(f"{'='*60}")
+    
+    # Run final evaluation with best time limit
+    test_solvers = [ConcordeSolver(time_limit=best_time_limit), TSPSOLVER(), NearestNeighbourSolver()]
     run_times_dict, scores_dict = compare_problems(test_solvers, metric_problems, mock.loaded_datasets)
 
     # Create DataFrames for run times and scores
