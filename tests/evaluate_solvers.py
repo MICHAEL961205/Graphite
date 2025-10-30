@@ -135,7 +135,7 @@ def main():
     load_default_dataset(mock) # load dataset as an attribute to mock instance
 
     # Use MetricTSPGenerator to generate problems of various graph sizes
-    metric_problems, metric_sizes = MetricTSPV2Generator.generate_n_samples_without_edges(100, mock.loaded_datasets)
+    metric_problems, metric_sizes = MetricTSPV2Generator.generate_n_samples_without_edges(200, mock.loaded_datasets)
 
     # Try different time limits until Concorde shows improvement
     time_limits = [60, 120, 300, 600, 1200]  # 1min, 2min, 5min, 10min, 20min

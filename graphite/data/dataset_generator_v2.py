@@ -128,7 +128,7 @@ class MetricTSPV2Generator(DatasetGenerator):
         node_coords_np = loaded_datasets[problem.dataset_ref]["data"]
         node_coords = np.array([node_coords_np[i][1:] for i in problem.selected_ids])
 
-        for id in range(100):
+        for id in range(100, 300):
             if os.path.exists(os.path.join("tests", "problems", f"{id}.prob")):
                 continue
             
