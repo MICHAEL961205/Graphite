@@ -43,3 +43,4 @@ from .branch_and_bound_solver import BranchAndBoundSolver
 from .held_karp_solver import HeldKarpSolver
 from .lkh_solver import LKHSolver
 from .concorde_hybrid_solver import ConcordeHybridSolver
+from .best_tsp_solver import BestHeuristicTSPSolver

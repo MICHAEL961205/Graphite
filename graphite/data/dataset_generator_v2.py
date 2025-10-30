@@ -128,18 +128,24 @@ class MetricTSPV2Generator(DatasetGenerator):
         node_coords_np = loaded_datasets[problem.dataset_ref]["data"]
         node_coords = np.array([node_coords_np[i][1:] for i in problem.selected_ids])
 
-        for id in range(100, 300):
-            if os.path.exists(os.path.join("tests", "problems", f"{id}.prob")):
-                continue
+        # for id in range(100, 300):
+        #     if os.path.exists(os.path.join("tests", "problems", f"{id}.prob")):
+        #         continue
             
-            with open(os.path.join("tests", "problems", f"{id}.prob"), "w") as f:
-                f.write(f"{len(node_coords)}\n")
-                for node in node_coords:
-                    f.write(f"{node[0]} {node[1]}\n")
-                f.write("\n")
+        #     with open(os.path.join("tests", "problems", f"{id}.prob"), "w") as f:
+        #         f.write(f"{len(node_coords)}\n")
+        #         for node in node_coords:
+        #             f.write(f"{node[0]} {node[1]}\n")
+        #         f.write("\n")
             
-            break
+        #     break
             
+        # Also store coordinates on the problem for solvers that consume coordinates (e.g., AI models)
+        try:
+            problem.nodes = node_coords.tolist()
+        except Exception:
+            problem.nodes = None
+
         if problem.cost_function == "Geom":
             problem.edges = geom_edges(node_coords).tolist()
         elif problem.cost_function == "Euclidean2D":
