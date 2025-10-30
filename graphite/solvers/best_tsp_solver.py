@@ -27,14 +27,15 @@ class BestHeuristicTSPSolver:
             "notes": "Multistart + 2-opt + chained Lin–Kernighan",
         }
 
-    async def solve_problem(self, problem: GraphV2Problem) -> List[int]:
+    async def solve_problem(self, problem: GraphV2Problem, timeout: float | None = None) -> List[int]:
         n = problem.n_nodes
         if not problem.edges or len(problem.edges) != n:
             return []
 
         dist = np.array(problem.edges, dtype=float)
         start_time = time.time()
-        hard_limit = self._compute_time_limit(n) if self.time_limit is None else self.time_limit
+        base_limit = self._compute_time_limit(n) if self.time_limit is None else self.time_limit
+        hard_limit = base_limit if timeout is None else min(base_limit, float(timeout))
         max_starts = self._compute_starts(n) if self.max_starts is None else self.max_starts
 
         best_tour: List[int] | None = None
@@ -159,9 +160,9 @@ class BestHeuristicTSPSolver:
     @staticmethod
     def _compute_starts(n: int) -> int:
         if n < 500:
-            return 16
+            return 32
         if n < 2000:
-            return 12
-        return 8
+            return 48
+        return 100
 
 
