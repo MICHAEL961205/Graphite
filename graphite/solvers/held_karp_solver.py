@@ -6,6 +6,7 @@
 from typing import List, Union, Dict, Tuple
 from graphite.solvers.base_solver import BaseSolver
 from graphite.solvers.greedy_solver import NearestNeighbourSolver
+from graphite.solvers.common_utils import nearest_neighbor, nearest_neighbor_subset, two_opt_improve
 from graphite.protocol import GraphV1Problem, GraphV2Problem
 import numpy as np
 import time
@@ -104,12 +105,12 @@ class HeldKarpSolver(BaseSolver):
         """Heuristic Held-Karp for larger problems"""
         n = len(dist)
         
-        # Start with nearest neighbor
+        # Start with nearest neighbor (shared util)
         solution = self._nearest_neighbor(dist, start_time, hard_limit)
         if solution is None or len(solution) < n:
             return list(range(n)) + [0]
         
-        # Apply 2-opt improvements
+        # Apply 2-opt improvements (shared util)
         solution = self._two_opt_improve(solution, dist, start_time, hard_limit)
         
         # Use Held-Karp on smaller subproblems
@@ -283,82 +284,16 @@ class HeldKarpSolver(BaseSolver):
         return tour[::-1]  # Reverse to get correct order
 
     def _nearest_neighbor(self, dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
-        """Nearest neighbor construction"""
-        n = len(dist)
-        tour = [0]
-        visited = {0}
-        current = 0
-        
-        for _ in range(n - 1):
-            if (time.time() - start_time) >= hard_limit:
-                break
-            nearest = None
-            best_dist = float('inf')
-            for j in range(n):
-                if j not in visited and dist[current][j] < best_dist:
-                    best_dist = dist[current][j]
-                    nearest = j
-            if nearest is None:
-                break
-            tour.append(nearest)
-            visited.add(nearest)
-            current = nearest
-        return tour
+        """Nearest neighbor construction (delegates to shared util)."""
+        return nearest_neighbor(dist=dist, start=0, start_time=start_time, hard_limit=hard_limit)
 
     def _nearest_neighbor_subset(self, dist: np.ndarray, subset: List[int], start_time: float, hard_limit: float) -> List[int]:
-        """Nearest neighbor construction for a subset of cities"""
-        n = len(subset)
-        if n <= 1:
-            return subset
-        
-        tour = [subset[0]]
-        visited = {subset[0]}
-        current = subset[0]
-        
-        for _ in range(n - 1):
-            if (time.time() - start_time) >= hard_limit:
-                break
-            nearest = None
-            best_dist = float('inf')
-            for city in subset:
-                if city not in visited and dist[current][city] < best_dist:
-                    best_dist = dist[current][city]
-                    nearest = city
-            if nearest is None:
-                break
-            tour.append(nearest)
-            visited.add(nearest)
-            current = nearest
-        return tour
+        """Nearest neighbor construction for a subset of cities (delegates to shared util)."""
+        return nearest_neighbor_subset(dist=dist, subset=subset, start_time=start_time, hard_limit=hard_limit)
 
     def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> List[int]:
-        """2-opt local improvement"""
-        n = len(solution)
-        improved_solution = solution[:]
-        improved = True
-        iterations = 0
-        max_iterations = 20
-        
-        while improved and iterations < max_iterations and (time.time() - start_time) < hard_limit:
-            improved = False
-            iterations += 1
-            
-            for i in range(1, n - 2):
-                if (time.time() - start_time) >= hard_limit:
-                    break
-                for j in range(i + 1, n):
-                    if (time.time() - start_time) >= hard_limit:
-                        break
-                    a, b = improved_solution[i-1], improved_solution[i]
-                    c, d = improved_solution[j-1], improved_solution[j]
-                    if dist[a][c] + dist[b][d] < dist[a][b] + dist[c][d] - 1e-12:
-                        improved_solution[i:j] = reversed(improved_solution[i:j])
-                        improved = True
-                        break
-                if improved:
-                    break
-        
-        return improved_solution
+        """2-opt local improvement (delegates to shared util)."""
+        return two_opt_improve(solution=solution, dist=dist, start_time=start_time, hard_limit=hard_limit, max_iterations=20)
 
     def _calculate_cost(self, solution: List[int], dist: np.ndarray) -> float:
         """Calculate tour cost"""

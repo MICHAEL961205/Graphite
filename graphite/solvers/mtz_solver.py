@@ -6,6 +6,7 @@
 from typing import List, Union, Tuple
 from graphite.solvers.base_solver import BaseSolver
 from graphite.solvers.greedy_solver import NearestNeighbourSolver
+from graphite.solvers.common_utils import nearest_neighbor
 from graphite.protocol import GraphV1Problem, GraphV2Problem
 import numpy as np
 import time
@@ -131,27 +132,8 @@ class MTZSolver(BaseSolver):
         return solution + [solution[0]]
 
     def _nearest_neighbor(self, dist: np.ndarray, start_time: float) -> List[int]:
-        """Nearest neighbor construction"""
-        n = len(dist)
-        tour = [0]
-        visited = {0}
-        current = 0
-        
-        for _ in range(n - 1):
-            if (time.time() - start_time) >= self.time_limit:
-                break
-            nearest = None
-            best_dist = float('inf')
-            for j in range(n):
-                if j not in visited and dist[current][j] < best_dist:
-                    best_dist = dist[current][j]
-                    nearest = j
-            if nearest is None:
-                break
-            tour.append(nearest)
-            visited.add(nearest)
-            current = nearest
-        return tour
+        """Nearest neighbor using shared utility (respects time limit)."""
+        return nearest_neighbor(dist=dist, start=0, start_time=start_time, hard_limit=self.time_limit)
 
     def _find_subtours(self, solution: List[int]) -> List[List[int]]:
         """Find all subtours in the solution"""

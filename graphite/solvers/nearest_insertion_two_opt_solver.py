@@ -8,6 +8,7 @@ from graphite.solvers.base_solver import BaseSolver
 from graphite.protocol import GraphV1Problem, GraphV2Problem
 import numpy as np
 import time
+from graphite.solvers.common_utils import two_opt_improve
 
 class NearestInsertionTwoOptSolver(BaseSolver):
     """
@@ -131,39 +132,7 @@ class NearestInsertionTwoOptSolver(BaseSolver):
         return tour
 
     def _two_opt_improve(self, tour: List[int], dist: np.ndarray, start_time: float, time_limit: float) -> List[int]:
-        n = len(tour)
-        improved = True
-        iterations = 0
-        max_iterations = 5  # Strict limit
-        check_counter = 0
-        
-        while improved and iterations < max_iterations:
-            improved = False
-            check_counter += 1
-            if check_counter % 5 == 0 and (time.time() - start_time) >= time_limit:
-                return tour
-                
-            for i in range(1, min(n - 2, 100)):  # Limit i range
-                if check_counter % 2 == 0 and (time.time() - start_time) >= time_limit:
-                    return tour
-                a = tour[i - 1]
-                b = tour[i]
-                # Limit j to nearby positions only
-                for j in range(i + 1, min(i + 10, n)):
-                    if (time.time() - start_time) >= time_limit:
-                        return tour
-                    c = tour[j - 1]
-                    d = tour[j % n]
-                    old_cost = dist[a][b] + dist[c][d]
-                    new_cost = dist[a][c] + dist[b][d]
-                    if new_cost + 1e-12 < old_cost:
-                        tour[i:j] = reversed(tour[i:j])
-                        improved = True
-                        break
-                if improved:
-                    break
-            iterations += 1
-        return tour
+        return two_opt_improve(solution=tour, dist=dist, start_time=start_time, hard_limit=time_limit, max_iterations=5)
 
     def problem_transformations(self, problem: Union[GraphV1Problem, GraphV2Problem]):
         return problem.edges
