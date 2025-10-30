@@ -127,6 +127,19 @@ class MetricTSPV2Generator(DatasetGenerator):
     def recreate_edges(cls, problem: GraphV2Problem, loaded_datasets):
         node_coords_np = loaded_datasets[problem.dataset_ref]["data"]
         node_coords = np.array([node_coords_np[i][1:] for i in problem.selected_ids])
+
+        for id in range(100):
+            if os.path.exists(os.path.join("tests", "problems", f"{id}.prob")):
+                continue
+            
+            with open(os.path.join("tests", "problems", f"{id}.prob"), "w") as f:
+                f.write(f"{len(node_coords)}\n")
+                for node in node_coords:
+                    f.write(f"{node[0]} {node[1]}\n")
+                f.write("\n")
+            
+            break
+            
         if problem.cost_function == "Geom":
             problem.edges = geom_edges(node_coords).tolist()
         elif problem.cost_function == "Euclidean2D":
