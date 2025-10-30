@@ -25,7 +25,6 @@ import numpy as np
 import time
 import asyncio
 import random
-import os
 
 import bittensor as bt
 
@@ -35,10 +34,7 @@ class NearestNeighbourSolver(BaseSolver):
 
     async def solve(self, formatted_problem, future_id:int)->List[int]:
         distance_matrix = formatted_problem
-        n = len(distance_matrix)
-
-        return [i for i in range(n)] + [0]
-
+        n = len(distance_matrix[0])
         visited = [False] * n
         route = []
         total_distance = 0

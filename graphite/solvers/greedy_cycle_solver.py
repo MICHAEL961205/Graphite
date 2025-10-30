@@ -52,7 +52,15 @@ class GreedyCycleSolver(BaseSolver):
                 break
             tour.insert(best_pos, best_city)
             remaining.remove(best_city)
-
+        # Ensure all nodes included
+        if remaining:
+            for city in sorted(list(remaining)):
+                tour.append(city)
+        # Rotate to start at 0 if present
+        if 0 in tour:
+            i = tour.index(0)
+            tour = tour[i:] + tour[:i]
+        # Close the cycle
         tour.append(tour[0])
         return tour
 
