@@ -6,6 +6,7 @@
 from typing import List, Union, Tuple
 from graphite.solvers.base_solver import BaseSolver
 from graphite.solvers.greedy_solver import NearestNeighbourSolver
+from graphite.solvers.common_utils import two_opt_improve
 from graphite.protocol import GraphV1Problem, GraphV2Problem
 import numpy as np
 import time
@@ -398,25 +399,12 @@ class ConcordeHybridSolver(BaseSolver):
         return current_solution
 
     def _two_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
-        """2-opt improvement"""
-        n = len(solution)
-        improved = False
-        
-        for i in range(1, n - 2):
-            if (time.time() - start_time) >= hard_limit:
-                break
-            for j in range(i + 1, n):
-                if (time.time() - start_time) >= hard_limit:
-                    break
-                a, b = solution[i-1], solution[i]
-                c, d = solution[j-1], solution[j]
-                if dist[a][c] + dist[b][d] < dist[a][b] + dist[c][d] - 1e-12:
-                    solution[i:j] = reversed(solution[i:j])
-                    improved = True
-                    break
-            if improved:
-                break
-        return improved
+        """2-opt improvement via shared utility; return whether improved"""
+        improved = two_opt_improve(solution=solution, dist=dist, start_time=start_time, hard_limit=hard_limit)
+        if improved != solution:
+            solution[:] = improved
+            return True
+        return False
 
     def _three_opt_improve(self, solution: List[int], dist: np.ndarray, start_time: float, hard_limit: float) -> bool:
         """3-opt improvement"""

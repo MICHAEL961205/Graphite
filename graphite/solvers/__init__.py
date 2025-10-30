@@ -12,6 +12,10 @@ from .greedy_portfolio_solver import GreedyPortfolioSolver
 from .tsp_solver import TSPSOLVER
 from .concorde_solver import ConcordeSolver
 from .two_opt_solver import TwoOptSolver
+from .clarke_wright_solver import ClarkeWrightSolver
+from .mst_doubling_solver import MSTDoublingSolver
+from .greedy_cycle_solver import GreedyCycleSolver
+from .christofides_two_opt_solver import ChristofidesTwoOptSolver
 from .three_opt_solver import ThreeOptSolver
 from .simulated_annealing_solver import SimulatedAnnealingSolver
 from .genetic_algorithm_solver import GeneticAlgorithmSolver

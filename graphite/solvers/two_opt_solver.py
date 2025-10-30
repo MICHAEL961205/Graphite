@@ -20,6 +20,7 @@
 from typing import List, Union
 from graphite.solvers.base_solver import BaseSolver
 from graphite.solvers.greedy_solver import NearestNeighbourSolver
+from graphite.solvers.common_utils import nearest_neighbor
 from graphite.protocol import GraphV1Problem, GraphV2Problem
 from graphite.utils.graph_utils import timeout
 import numpy as np
@@ -67,16 +68,8 @@ class TwoOptSolver(BaseSolver):
         distance_matrix = formatted_problem
         n = len(distance_matrix[0])
         
-        # Start with nearest neighbor solution
-        nn_solver = NearestNeighbourSolver()
-        current_tour = await nn_solver.solve(formatted_problem, future_id)
-        
-        if current_tour is None:
-            return None
-            
-        # Remove the duplicate start node at the end
-        if current_tour[-1] == current_tour[0]:
-            current_tour = current_tour[:-1]
+        # Start with nearest neighbor solution (shared util, avoids async call)
+        current_tour = nearest_neighbor(dist=distance_matrix, start=0)
         
         start_time = time.time()
         improved = True

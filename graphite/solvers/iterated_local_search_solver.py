@@ -6,6 +6,7 @@
 from typing import List, Union
 from graphite.solvers.base_solver import BaseSolver
 from graphite.solvers.greedy_solver import NearestNeighbourSolver
+from graphite.solvers.common_utils import two_opt_improve
 from graphite.protocol import GraphV1Problem, GraphV2Problem
 import numpy as np
 import time
@@ -198,25 +199,12 @@ class IteratedLocalSearchSolver(BaseSolver):
         return current_solution
 
     def _two_opt_improve(self, tour: List[int], dist: np.ndarray, start_time: float) -> bool:
-        """2-opt local improvement"""
-        n = len(tour)
-        improved = False
-        
-        for i in range(1, n - 2):
-            if (time.time() - start_time) >= self.time_limit:
-                break
-            for j in range(i + 1, n):
-                if (time.time() - start_time) >= self.time_limit:
-                    break
-                a, b = tour[i-1], tour[i]
-                c, d = tour[j-1], tour[j]
-                if dist[a][c] + dist[b][d] < dist[a][b] + dist[c][d] - 1e-12:
-                    tour[i:j] = reversed(tour[i:j])
-                    improved = True
-                    break
-            if improved:
-                break
-        return improved
+        """2-opt local improvement via shared utility; return whether improved"""
+        improved_tour = two_opt_improve(solution=tour, dist=dist, start_time=start_time, hard_limit=self.time_limit)
+        if improved_tour != tour:
+            tour[:] = improved_tour
+            return True
+        return False
 
     def _three_opt_improve(self, tour: List[int], dist: np.ndarray, start_time: float) -> bool:
         """3-opt local improvement"""
